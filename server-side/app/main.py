@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .api.endpoints import users
+from .api.endpoints import users, emails
+
 from .config import settings
 
 app = FastAPI(
@@ -21,6 +22,7 @@ app.add_middleware(
 )
 
 app.include_router(users.router, prefix="/api/v1", tags=["users"])
+app.include_router(emails.router, prefix="/api/v1", tags=["emails"])
 
 @app.get("/routes", tags=["admin"])
 async def get_routes():
