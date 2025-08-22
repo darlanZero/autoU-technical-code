@@ -10,7 +10,6 @@ class Settings(BaseSettings):
     appwrite_project: str = os.getenv("appwrite_project") 
     appwrite_key: str = os.getenv("appwrite_key")
     appwrite_database_id: str = os.getenv("appwrite_database_id")
-    user_collection_id: str = os.getenv("user_collection_id")
     email_collection_id: str = os.getenv("email_collection_id")
 
     class Config:

@@ -1,5 +1,6 @@
 from appwrite.client import Client
 from appwrite.services.databases import Databases
+from appwrite.services.users import Users
 from appwrite.id import ID
 from appwrite.query import Query
 from .config import settings
@@ -12,3 +13,7 @@ def get_appwrite_client():
 def get_appwrite_databases():
     client = get_appwrite_client()
     return Databases(client)
+
+def get_appwrite_users():
+    client = get_appwrite_client()
+    return Users(client)

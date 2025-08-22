@@ -1,27 +1,31 @@
-from datetime import datetime
 from fastapi import APIRouter, HTTPException, status
 from typing import List
 
-from ...models.user import User, UserUpdate, UserResponse
-from ...services.appwrite_service import appwrite_service
-from ...config import settings
+from ...models.user import UserCreate, UserCreateSHA, UserUpdate, UserResponse
+from ...services.appwrite_user_service import appwrite_user_service
 
 router = APIRouter()
 
-@router.post("/users/create_user", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(user: User) -> UserResponse:
+@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user(user: UserCreate) -> UserResponse:
+    """Cria um novo usuário usando o Users service"""
     try:
-        user_data = user.model_dump()
-        now = datetime.utcnow()
-        user_data.update({
-            "is_active":True,
-            "created_at": now.isoformat(),
-            "updated_at": now.isoformat()
-        })
-        
-        result = appwrite_service.create_document( 
-            collection_id=settings.user_collection_id,
-            data=user_data
+        result = appwrite_user_service.create_user(
+            email=user.email,
+            password=user.password,
+            name=user.name
+        )
+        return UserResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.post("/users/sha", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_sha_user(user: UserCreateSHA) -> UserResponse:
+    try:
+        result = appwrite_user_service.create_sha_user(
+            email=user.email,
+            password=user.password,
+            name=user.name
         )
         return UserResponse(**result)
     except Exception as e:
@@ -29,27 +33,37 @@ async def create_user(user: User) -> UserResponse:
 
 @router.get("/users/{user_id}", response_model=UserResponse)
 async def get_user(user_id: str) -> UserResponse:
-    try: 
-        result = appwrite_service.get_document(
-            collection_id=settings.user_collection_id,
-            document_id=user_id
-        )
+    try:
+        result = appwrite_user_service.get_user(user_id)
         return UserResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+@router.get("/users", response_model=List[UserResponse])
+async def list_users(search: str = None) -> List[UserResponse]:
+    try:
+        result = appwrite_user_service.list_users(search=search)
+        return [UserResponse(**user) for user in result['users']]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 @router.put("/users/{user_id}", response_model=UserResponse)
 async def update_user(user_id: str, user_update: UserUpdate) -> UserResponse:
-    update_data = {k: v for k, v in user_update.model_dump().items() if v is not None}
-
-    update_data["updated_at"] = datetime.utcnow().isoformat()
-
     try:
-        result = appwrite_service.update_document(
-            collection_id=settings.user_collection_id,
-            document_id=user_id,
-            data=update_data
-        )
+        if user_update.email:
+            appwrite_user_service.update_email(user_id, user_update.email)
+        if user_update.name:
+            appwrite_user_service.update_user(user_id, name=user_update.name)
+        
+        result = appwrite_user_service.get_user(user_id)
+        return UserResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+@router.patch("/users/{user_id}/status", response_model=UserResponse)
+async def toggle_user_status(user_id: str, status: bool) -> UserResponse:
+    try:
+        result = appwrite_user_service.update_status(user_id, status)
         return UserResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -57,9 +71,6 @@ async def update_user(user_id: str, user_update: UserUpdate) -> UserResponse:
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(user_id: str) -> None:
     try:
-        appwrite_service.delete_document(
-            collection_id=settings.user_collection_id,
-            document_id=user_id
-        )
+        appwrite_user_service.delete_user(user_id)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
