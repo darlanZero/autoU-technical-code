@@ -1,0 +1,6 @@
+.vscode/
+.idea/
+
+#environment
+server-side/prod.env
+
