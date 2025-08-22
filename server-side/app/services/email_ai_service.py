@@ -74,21 +74,32 @@ class EmailAIService:
             unproductive_similarities = cosine_similarity(text_embedding, self.unproductive_embeddings)[0]
             max_unproductive_sim = np.max(unproductive_similarities)
             
+            # ✅ Debug melhorado
             sentiment_result = self.classifier(full_text[:512])
-            sentiment_score = sentiment_result['score'] if sentiment_result else 0.5
+            sentiment_score = sentiment_result[0]['score'] if sentiment_result else 0.5
+            
+            print(f"🔍 Debug HF Classification:")
+            print(f"   Max Productive Similarity: {max_productive_sim:.3f}")
+            print(f"   Max Unproductive Similarity: {max_unproductive_sim:.3f}")
+            print(f"   Sentiment Score: {sentiment_score:.3f}")
+            print(f"   Sentiment Label: {sentiment_result[0]['label'] if sentiment_result else 'None'}")
             
             if max_productive_sim > max_unproductive_sim:
                 category = "produtivo"
                 confidence = min(0.95, 0.5 + (max_productive_sim - max_unproductive_sim) + (sentiment_score * 0.2))
-                response = self.generate_productive_response_ai(content, subject, max_productive_sim)
+                response = self._generate_productive_response_ai(content, subject, max_productive_sim)
             else:
                 category = "improdutivo"
                 confidence = min(0.95, 0.5 + (max_unproductive_sim - max_productive_sim) + (sentiment_score * 0.2))
-                response = self.generate_unproductive_response_ai(content, subject, max_unproductive_sim)
+                response = self._generate_unproductive_response_ai(content, subject)
 
+            print(f"   Final Category: {category}")
+            print(f"   Final Confidence: {confidence:.3f}")
+            
             return category, confidence, response
         except Exception as e:
-            print(f"Error classifying email: {e}")
+            print(f"❌ Error classifying email: {e}")
+            print(f"   Falling back to simple classification...")
             return self.classify_email_simple(content, subject)
 
     def classify_email_simple(self, content: str, subject: str = "") -> Tuple[str, float, str]:
@@ -115,11 +126,11 @@ class EmailAIService:
         if productive_score > unproductive_score:
             category = 'produtivo'
             confidence = min(0.9, 0.6 + (productive_score * 0.1))
-            response = self.generate_productive_response(content, subject)
+            response = self._generate_productive_response(content, subject)
         else:
             category = 'improdutivo'
             confidence = min(0.9, 0.6 + (unproductive_score * 0.1))
-            response = self.generate_unproductive_response(content, subject)
+            response = self._generate_unproductive_response(content, subject)
 
         return category, confidence, response
     
@@ -136,7 +147,7 @@ class EmailAIService:
         
         return "Agradecemos seu contato. Sua mensagem foi classificada como prioritária e será direcionada para a equipe responsável. Retornaremos em breve com uma resposta detalhada."
 
-    def _generate_unproductive_response_ai(self, content: str, subject: str) -> str:
+    def _generate_unproductive_response_ai(self, content: str, subject: str) -> str: 
         content_lower = content.lower()
         
         if any(word in content_lower for word in ['parabéns', 'parabens', 'felicitações']):
@@ -173,7 +184,7 @@ class EmailAIService:
 
         if self.classifier and self.embedding_model:
             print("Classifying email with Hugging Face...")
-            category, confidence, suggested_response = self.classify_email_huggingface(clean_content, clean_subject)
+            category, confidence, suggested_response = self.classify_with_huggingface(clean_content, clean_subject)
         else:
             print('Classifying email with simple model...')
             category, confidence, suggested_response = self.classify_email_simple(clean_content, clean_subject)
