@@ -1,0 +1,49 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from .api.endpoints import users
+from .config import settings
+
+app = FastAPI(
+    title="Email Handling API", 
+    version="1.0.0",
+    description="API for handling email-related operations using Appwrite.",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",   
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(users.router, prefix="/api/v1", tags=["users"])
+
+@app.get("/routes", tags=["admin"])
+async def get_routes():
+    routes = []
+    for route in app.routes:
+        if hasattr(route, "methods") and hasattr(route, "path"):
+            routes.append({
+                "path": route.path,
+                "methods": list(route.methods),
+                "name": route.name,
+                'summary': route.summary or "No summary provided"
+            })
+    return {"routes": routes}
+
+@app.get("/", tags=["root"])
+async def root():
+    return {
+        "message": "Welcome to the Email Handling API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "redoc": "/redoc"
+    }
+
+@app.get("/health", tags=["health"])
+async def health_check():
+    return {"status": "healthy"}
