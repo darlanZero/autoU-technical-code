@@ -4,14 +4,84 @@ from datetime import datetime
 import json
 
 from ...models.email import (
-    EmailCreate, EmailUpdate, EmailResponse, EmailProcessRequest, 
-    EmailProcessResponse, EmailStatus, EmailCategory
+    EmailCreate, EmailUpdate, EmailResponse, EmailSendRequest,
+    EmailProcessRequest, EmailProcessResponse, EmailStatus, 
+    EmailCategory, EmailInboxResponse
 )
 from ...services.appwrite_service import appwrite_service
 from ...services.email_ai_service import email_ai_service
+from ...services.email_user_service import email_user_service
 from ...config import settings
 
 router = APIRouter()
+
+@router.post("/emails/send", response_model=EmailResponse, status_code=status.HTTP_201_CREATED)
+async def send_email(
+    sender_user_id: str,
+    email_request: EmailSendRequest
+) -> EmailResponse:
+    try:
+        result = await email_user_service.send_email(
+            sender_user_id=sender_user_id,
+            recipient_email=email_request.recipient_email,
+            subject=email_request.subject,
+            body=email_request.body
+        )
+        return EmailResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+@router.get("/emails/inbox/{user_id}", response_model=EmailInboxResponse)  # ✅ Adicione o @ que está faltando
+async def get_user_inbox(
+    user_id: str,
+    limit: int = 50,
+    include_read: bool = True
+) -> EmailInboxResponse:
+    try:
+        result = email_user_service.get_user_inbox(
+            user_id=user_id,
+            limit=limit,
+            include_read=include_read
+        )
+        emails = [EmailResponse(**email) for email in result['emails']]
+        return EmailInboxResponse(
+            total=result['total'],
+            unread_count=result['unread_count'],
+            emails=emails
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.get("/emails/sent/{user_id}", response_model=List[EmailResponse])
+async def get_user_sent(user_id: str, limit: int = 50) -> List[EmailResponse]:
+    try:
+        result = email_user_service.get_user_sent(
+            user_id=user_id,
+            limit=limit
+        )
+        return [EmailResponse(**email) for email in result]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+@router.patch("/emails/{email_id}/read")
+async def mark_email_as_read(email_id: str, user_id: str):
+    try:
+        email_user_service.mark_as_read(email_id=email_id, user_id=user_id)  # ✅ Corrigido: era mark_email_as_read
+        return {"message": "Email marked as read"}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+@router.get("/emails/conversation/{user1_id}/{user2_id}", response_model=List[EmailResponse])
+async def get_conversation(user1_id: str, user2_id: str, limit: int = 50) -> List[EmailResponse]:
+    try:
+        result = email_user_service.get_conversation(
+            user1_id=user1_id,
+            user2_id=user2_id,
+            limit=limit
+        )
+        return [EmailResponse(**email) for email in result]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.post("/emails/process-text", response_model=EmailProcessResponse)
 async def process_email_text(request: EmailProcessRequest) -> EmailProcessResponse:

@@ -69,14 +69,14 @@ class EmailAIService:
             text_embedding = self.embedding_model.encode([full_text])
             
             productive_similarities = cosine_similarity(text_embedding, self.productive_embeddings)[0]
-            max_productive_sim = np.max(productive_similarities)
+            max_productive_sim = float(np.max(productive_similarities))
             
             unproductive_similarities = cosine_similarity(text_embedding, self.unproductive_embeddings)[0]
-            max_unproductive_sim = np.max(unproductive_similarities)
+            max_unproductive_sim = float(np.max(unproductive_similarities))
             
             # ✅ Debug melhorado
             sentiment_result = self.classifier(full_text[:512])
-            sentiment_score = sentiment_result[0]['score'] if sentiment_result else 0.5
+            sentiment_score = float(sentiment_result[0]['score']) if sentiment_result else 0.5
             
             print(f"🔍 Debug HF Classification:")
             print(f"   Max Productive Similarity: {max_productive_sim:.3f}")
@@ -86,11 +86,11 @@ class EmailAIService:
             
             if max_productive_sim > max_unproductive_sim:
                 category = "produtivo"
-                confidence = min(0.95, 0.5 + (max_productive_sim - max_unproductive_sim) + (sentiment_score * 0.2))
+                confidence = float(min(0.95, 0.5 + (max_productive_sim - max_unproductive_sim) + (sentiment_score * 0.2)))
                 response = self._generate_productive_response_ai(content, subject, max_productive_sim)
             else:
                 category = "improdutivo"
-                confidence = min(0.95, 0.5 + (max_unproductive_sim - max_productive_sim) + (sentiment_score * 0.2))
+                confidence = float(min(0.95, 0.5 + (max_unproductive_sim - max_productive_sim) + (sentiment_score * 0.2)))
                 response = self._generate_unproductive_response_ai(content, subject)
 
             print(f"   Final Category: {category}")
@@ -106,7 +106,7 @@ class EmailAIService:
         content_lower = content.lower()
         subject_lower = subject.lower() if subject else ""
         full_text = f"{subject_lower} {content_lower}"
-        
+    
         productive_keywords = [
             'solicitação', 'solicitacao', 'urgent', 'urgente', 'problema', 'erro', 'bug',
             'suporte', 'help', 'ajuda', 'status', 'andamento', 'update', 'atualização',
@@ -125,19 +125,19 @@ class EmailAIService:
         
         if productive_score > unproductive_score:
             category = 'produtivo'
-            confidence = min(0.9, 0.6 + (productive_score * 0.1))
+            confidence = float(min(0.9, 0.6 + (productive_score * 0.1)))  # ✅ Conversão para float
             response = self._generate_productive_response(content, subject)
         else:
             category = 'improdutivo'
-            confidence = min(0.9, 0.6 + (unproductive_score * 0.1))
-            response = self._generate_unproductive_response(content, subject)
+            confidence = float(min(0.9, 0.6 + (unproductive_score * 0.1)))  # ✅ Conversão para float
+            response = self._generate_unproductive_response()  # ✅ Corrigido: sem parâmetros extras
 
         return category, confidence, response
     
     def _generate_productive_response_ai(self, content: str, subject: str, similarity_core: float) -> str:
         content_lower = content.lower()
         
-        if similarity_core > 0.8:
+        if similarity_core > 0.7:
             if any(word in content_lower for word in ['status', 'andamento', 'atualização']):
                 return "Obrigado por seu contato. Verificamos que você está solicitando uma atualização de status. Nossa equipe está analisando sua solicitação e retornaremos com informações detalhadas em até 24 horas."
             elif any(word in content_lower for word in ['problema', 'erro', 'bug', 'falha']):
@@ -192,9 +192,9 @@ class EmailAIService:
 
         return {
             "category": category,
-            "confidence_score": round(confidence, 3),
+            "confidence_score": float(confidence),
             "suggested_response": suggested_response,
-            "processing_time": round(processing_time, 3),
+            "processing_time": float(processing_time),
         }
         
 email_ai_service = EmailAIService()
