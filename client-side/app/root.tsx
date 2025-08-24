@@ -7,6 +7,7 @@ import {
   ScrollRestoration,
 } from "react-router";
 import stylesheet from "./app.css?url";
+import { AuthProvider } from "./api/authContext";
 
 export const links = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -32,7 +33,9 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <Outlet />
+        <AuthProvider>
+          <Outlet />
+        </AuthProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { useAuth } from "~/api/authContext"; 
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -8,8 +9,8 @@ export default function Register() {
     password: '',
     confirmPassword: ''
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { state, register, clearError } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -20,29 +21,29 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    const navigate = useNavigate();
+    clearError();
 
     if (formData.password !== formData.confirmPassword) {
-      setError('As senhas não coincidem');
-      setIsLoading(false);
+      // Implementar erro local ou usar o contexto para erros de validação
+      alert('As senhas não coincidem');
       return;
     }
 
     try {
-      // TODO: Implementar registro com backend
-      console.log('Register attempt:', formData);
-      
-      // Mock delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+
       // Redirect to login on success
-      navigate('/login');
-    } catch (err) {
-      setError('Erro ao criar conta. Tente novamente.');
-    } finally {
-      setIsLoading(false);
+      navigate('/login', { 
+        replace: true,
+        // Passar mensagem de sucesso se necessário
+      });
+    } catch (error) {
+      // Erro já foi tratado no contexto
+      console.error('Register error:', error);
     }
   };
 
@@ -58,9 +59,9 @@ export default function Register() {
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
-        {error && (
+        {state.error && (
           <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded-md text-sm">
-            {error}
+            {state.error}
           </div>
         )}
 
@@ -76,7 +77,8 @@ export default function Register() {
             required
             value={formData.name}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            disabled={state.isLoading}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50"
             placeholder="João Silva"
           />
         </div>
@@ -93,7 +95,8 @@ export default function Register() {
             required
             value={formData.email}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            disabled={state.isLoading}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50"
             placeholder="seu.email@exemplo.com"
           />
         </div>
@@ -110,7 +113,8 @@ export default function Register() {
             required
             value={formData.password}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            disabled={state.isLoading}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50"
             placeholder="••••••••"
           />
         </div>
@@ -127,17 +131,18 @@ export default function Register() {
             required
             value={formData.confirmPassword}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            disabled={state.isLoading}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50"
             placeholder="••••••••"
           />
         </div>
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={state.isLoading}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
         >
-          {isLoading ? (
+          {state.isLoading ? (
             <div className="flex items-center">
               <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
