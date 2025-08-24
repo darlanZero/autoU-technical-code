@@ -15,16 +15,35 @@ export class AuthService {
 
 
     async login(credentials: LoginRequest): Promise<User> {
-        const response = await apiClient.get<User[]>(`/users?search=${encodeURIComponent(credentials.email)}`);
-        if (!response.data || response.data.length === 0) {
-        throw new Error('Email não encontrado');
+        const response = await apiClient.get<{users: User[]} | User[]>(`/users?search=${encodeURIComponent(credentials.email)}`);
+        console.log('Login response:', response);
+        if (!response.data ) {
+        throw new Error('Resposta inválida da API');
         }
 
+        let usersList: User[] = [];
 
-        const user = response.data.find(u => u.email === credentials.email);
+        if(Array.isArray(response.data)) {
+            usersList = response.data;
+        } else if (response.data && 'users' in response.data) {
+            usersList = response.data.users;
+        } else {
+            throw new Error('Resposta inválida da API');
+        }
+
+        console.log('Users list:', usersList.length);
+
+        if(usersList.length === 0) {
+            throw new Error('Usuário não encontrado');
+        }
+
+        const user = usersList.find(u => u.email === credentials.email);
+
         if (!user) {
-        throw new Error('Email não encontrado');
+            throw new Error('Usuário não encontrado(match exato');
         }
+
+        console.log('Found user:', {id: user.$id, email: user.email});
 
         console.log('🚧 TODO: Validar senha real:', credentials.password);
 
@@ -43,9 +62,20 @@ export class AuthService {
 
     async listUsers(search?: string): Promise<User[]> {
         const endpoint = search ? `/users?search=${encodeURIComponent(search)}` : '/users';
-        const response = await apiClient.get<User[]>(endpoint);
+        const response = await apiClient.get<{users: User[]} | User[]>(endpoint);
         
-        return response.data || [];
+        if (!response.data) {
+        return [];
+        }
+
+        // Verificar formato da resposta
+        if (Array.isArray(response.data)) {
+        return response.data;
+        } else if ('users' in response.data) {
+        return response.data.users;
+        }
+        
+        return [];
     }
 }
 
