@@ -1,17 +1,23 @@
 # server-side/Dockerfile
 FROM python:3.11-slim
 
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
+# Copiar requirements e instalar
 COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copiar código
 COPY . .
 
-EXPOSE 8000
+# Expor porta (Cloud Run usa PORT env var)
+EXPOSE 8080
 
-# Comando de produção
-CMD ["python", "run.py"]
-
-# Alternativa com Gunicorn:
-# CMD ["gunicorn", "app.main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--host", "0.0.0.0", "--port", "8000"]
+# Comando para produção
+CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1 --no-access-log

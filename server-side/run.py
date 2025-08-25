@@ -4,7 +4,7 @@ import os
 
 if __name__ == "__main__":
     # ✅ Configuração simples que funciona sempre
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 8080))
     host = "0.0.0.0"  # Necessário para serviços na nuvem
     
     print(f"🚀 Starting FastAPI server on {host}:{port}")
