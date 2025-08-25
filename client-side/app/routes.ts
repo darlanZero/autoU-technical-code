@@ -14,6 +14,9 @@ export default [
   layout("routes/internal/internalLayout.tsx", [
     route("/dashboard", "routes/internal/dashboard/dashboard.tsx"),
     route("/process", "routes/internal/dashboard/process/process.tsx"),
-    // route("/emails", "routes/internal/emails/emails.tsx"), // Para futuro
+    route("/emails", "routes/internal/emails/emailsHome.tsx"),
+    route("/emails/sent", "routes/internal/emails/emailsAnswered.tsx"),
+    route("/emails/compose", "routes/internal/emails/compose.tsx"),
+    route("/emails/:emailId", "routes/internal/emails/emailDetail.tsx"),
   ]),
 ] satisfies RouteConfig;

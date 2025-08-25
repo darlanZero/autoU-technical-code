@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, HTTPException, status
 from typing import List, Optional
 from datetime import datetime
-import json
+from appwrite.query import Query
 
 from ...models.email import (
     EmailCreate, EmailUpdate, EmailResponse, EmailSendRequest,
@@ -131,12 +131,12 @@ async def list_emails(
     limit: int = 50
 ) -> List[EmailResponse]:
     try:
-        queries = []
+        queries = [Query.limit(limit)]
         if category:
-            queries.append(f'equal("category", "{category.value}")')
+            queries.append(Query.equal("category", category.value))
         if status:
-            queries.append(f'equal("status", "{status.value}")')
-        
+            queries.append(Query.equal("status", status.value))
+
         result = appwrite_service.list_documents(
             collection_id=settings.email_collection_id,
             queries=queries
@@ -181,6 +181,28 @@ async def delete_email(email_id: str) -> None:
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found")
+    
+@router.get("/emails/test/{user_id}")
+async def test_inbox(user_id: str):
+    try:
+        # Teste básico sem queries complexas
+        result = appwrite_service.list_documents(
+            collection_id=settings.email_collection_id,
+            queries=[Query.limit(10)]
+        )
+        
+        return {
+            "collection_id": settings.email_collection_id,
+            "total_documents": len(result.get('documents', [])),
+            "user_id": user_id,
+            "documents": result.get('documents', [])[:2]  # Apenas 2 primeiros para debug
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "collection_id": settings.email_collection_id,
+            "user_id": user_id
+        }
 
 @router.post("/emails/{email_id}/reprocess", response_model=EmailResponse)
 async def reprocess_email(email_id: str) -> EmailResponse:

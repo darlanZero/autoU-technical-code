@@ -1,15 +1,23 @@
 import { useState } from "react";
-import { Link, Outlet, useLocation } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { useAuth } from "~/api/authContext";
 
 export default function InternalLayout() {
     const location = useLocation();
+    const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+    const { state, logout } = useAuth();
 
     const navigation = [
         { name: "Dashboard", href: "/dashboard", icon: "📊" },
         { name: "Emails", href: "/emails", icon: "📧" },
         { name: "Processar", href: "/process", icon: "🤖" },
     ];
+
+    const handleLogout = () => {
+        logout();
+        navigate("/", {replace: true});
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -58,7 +66,10 @@ export default function InternalLayout() {
                                 </div>
                                 <span className="text-sm text-gray-700 dark:text-gray-200">Admin</span>
                             </div>
-                            <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                            <button 
+                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                onClick={handleLogout}
+                            >
                                 Sair
                             </button>
                         </div>

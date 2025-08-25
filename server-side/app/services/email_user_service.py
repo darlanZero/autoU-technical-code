@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 from datetime import datetime
 from appwrite.exception import AppwriteException
+from appwrite.query import Query
 
 from ..services.appwrite_service import appwrite_service
 from ..services.appwrite_user_service import appwrite_user_service
@@ -98,16 +99,26 @@ class EmailUserService:
     
     def get_user_inbox(self, user_id: str, limit: int = 50, include_read: bool = True) -> Dict:
         try:
-            queries = [f'equal("recipient_user_id", "{user_id}")']
-            if not include_read:
-                queries.append('equal("is_read", false)')
-            queries.append(f'limit({limit})')
-            queries.append('orderDesc("created_at")')
+            print(f"📥 Getting inbox for user: {user_id}")
+            print(f"   Limit: {limit}, Include Read: {include_read}")
+            print(f"   Email Collection ID: {settings.email_collection_id}")
             
+            queries = [
+                Query.equal("recipient_user_id", user_id),
+                Query.limit(limit),
+                Query.order_desc("$createdAt")
+            ]
+            if not include_read:
+                queries.append(Query.equal("is_read", False))
+
+            print(f"   Queries: {[str(q) for q in queries]}")
+
             result = appwrite_service.list_documents(
                 collection_id=settings.email_collection_id,
                 queries=queries
             )
+            
+            print(f"   Result: {result}")
             
             emails = result['documents']
             total = len(emails)
@@ -120,14 +131,17 @@ class EmailUserService:
             }
             
         except Exception as e:
+            print(f"❌ Error in get_user_inbox: {e}")
+            print(f"   User ID: {user_id}")
+            print(f"   Collection ID: {settings.email_collection_id}")
             raise Exception(f"Error retrieving inbox for user {user_id}: {e}")
         
     def get_user_sent(self, user_id: str, limit: int = 50) -> List[Dict]:
         try:
             queries = [
-                f'equal("sender_user_id", "{user_id}")',
-                f'limit({limit})',
-                'orderDesc("created_at")'
+                Query.equal("sender_user_id", user_id),
+                Query.limit(limit),
+                Query.order_desc("$createdAt")
             ]
             
             result = appwrite_service.list_documents(
@@ -165,13 +179,13 @@ class EmailUserService:
     def get_conversation(self, user1_id: str, user2_id: str, limit: int = 50) -> List[Dict]:
         try:
             queries1 = [
-                f'equal("sender_user_id", "{user1_id}")',
-                f'equal("recipient_user_id", "{user2_id}")',
+                Query.equal("sender_user_id", user1_id),
+                Query.equal("recipient_user_id", user2_id),
             ]
             
             queries2 = [
-                f'equal("sender_user_id", "{user2_id}")',
-                f'equal("recipient_user_id", "{user1_id}")',
+                Query.equal("sender_user_id", user2_id),
+                Query.equal("recipient_user_id", user1_id),
             ]
             
             result1 = appwrite_service.list_documents(
@@ -185,9 +199,8 @@ class EmailUserService:
             )
 
             all_emails = result1['documents'] + result2['documents']
-            all_emails.sort(key=lambda x: x['created_at'])
-            
-            
+            all_emails.sort(key=lambda x: x.get('$createdAt', x.get('created_at', '')))
+
             return all_emails[:limit]
         except Exception as e:
             raise Exception(f"Error retrieving conversation between {user1_id} and {user2_id}: {e}")
