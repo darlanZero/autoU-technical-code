@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from .api.endpoints import users, emails
 
@@ -20,10 +20,12 @@ app.add_middleware(
             "http://localhost:5173",           # Vite dev  
             "https://vercel.app",              # Vercel preview
             "https://*.vercel.app", 
-            "https://auto-u-technical-code.vercel.app/"
+            "https://auto-u-technical-code.vercel.app",
+            "https://auto-u-technical-code-git-main.vercel.app",
+            "*"
         ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -51,6 +53,20 @@ async def root():
         "docs": "/docs",
         "redoc": "/redoc"
     }
+    
+# ✅ Debug middleware para ver requisições
+@app.middleware("http")
+async def debug_cors(request: Request, call_next):
+    print(f"🔍 Request: {request.method} {request.url}")
+    print(f"🔍 Origin: {request.headers.get('origin', 'No origin')}")
+    print(f"🔍 Headers: {dict(request.headers)}")
+    
+    response = await call_next(request)
+    
+    print(f"✅ Response: {response.status_code}")
+    print(f"✅ CORS Headers: {response.headers.get('access-control-allow-origin', 'None')}")
+    
+    return response
 
 @app.get("/health", tags=["health"])
 async def health_check():
