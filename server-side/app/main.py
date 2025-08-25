@@ -54,6 +54,10 @@ async def root():
         "redoc": "/redoc"
     }
     
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    return {"message": "OK"}
+    
 # ✅ Debug middleware para ver requisições
 @app.middleware("http")
 async def debug_cors(request: Request, call_next):
